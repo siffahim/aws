@@ -19,7 +19,7 @@ const uploadToAwsS3 = async (file: any) => {
   const bucketName = process.env.S3_BUCKET_NAME;
 
   if (!bucketName) {
-    throw new Error("S3_BUCKET_NAME environment variable is not set");
+    throw new Error("S3_BUCKET_NAME IS NOT SET");
   }
   const params = {
     Bucket: bucketName,
@@ -35,17 +35,28 @@ const uploadToAwsS3 = async (file: any) => {
 app.post(
   "/upload",
   upload.single("file"),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     const file = req.file;
     if (!file) {
       res.status(404).json({ message: "File not found" });
+      return;
     }
-    const data = await uploadToAwsS3(file);
+    try {
+      const data = await uploadToAwsS3(file);
 
-    res.status(200).json({
-      message: "File upload successfully",
-      data: data.Location,
-    });
+      //unlink file
+      fs.unlinkSync(file.path);
+
+      res.status(200).json({
+        message: "File upload successfully",
+        data: data.Location,
+      });
+    } catch (error) {
+      if (fs.existsSync(file?.path)) {
+        fs.unlinkSync(file?.path);
+      }
+      res.status(404).json({ message: "File upload error" });
+    }
   }
 );
 
