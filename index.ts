@@ -8,7 +8,7 @@ dotenv.config();
 
 const upload = multer({ dest: "uploads" });
 
-//configure aws
+//configure aws for S3
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_ACCESS_SECRET_KEY,
@@ -62,7 +62,7 @@ app.post(
 
 //getting server alive response
 app.get("/", (req: Request, res: Response) => {
-  res.send("Server alive:)");
+  res.send("Server alive :)");
 });
 
 //listening
