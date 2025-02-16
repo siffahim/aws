@@ -1,4 +1,4 @@
-import AWS from "aws-sdk";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import fs from "fs";
@@ -9,10 +9,12 @@ dotenv.config();
 const upload = multer({ dest: "uploads" });
 
 //configure aws for S3
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_ACCESS_SECRET_KEY,
+const s3 = new S3Client({
   region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.AWS_ACCESS_SECRET_KEY || "",
+  },
 });
 
 const uploadToAwsS3 = async (file: any) => {
@@ -28,33 +30,39 @@ const uploadToAwsS3 = async (file: any) => {
     ContentType: file.mimetype,
   };
 
-  return await s3.upload(params).promise();
+  const command = new PutObjectCommand(params);
+  await s3.send(command);
+
+  //unlink file
+  fs.unlinkSync(file.path);
+  return `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
 };
 
 //upload file to S3
 app.post(
   "/upload",
-  upload.single("file"),
+  upload.array("file"),
   async (req: Request, res: Response): Promise<void> => {
-    const file = req.file;
-    if (!file) {
+    const files = req.files as [];
+    const fileUrls = [];
+    if (!files) {
       res.status(404).json({ message: "File not found" });
       return;
     }
     try {
-      const data = await uploadToAwsS3(file);
-
-      //unlink file
-      fs.unlinkSync(file.path);
+      for (let file of files) {
+        const data = await uploadToAwsS3(file);
+        fileUrls.push(data);
+      }
 
       res.status(200).json({
         message: "File upload successfully",
-        data: data.Location,
+        data: fileUrls,
       });
     } catch (error) {
-      if (fs.existsSync(file?.path)) {
-        fs.unlinkSync(file?.path);
-      }
+      // if (fs.existsSync(file?.path)) {
+      //   fs.unlinkSync(file?.path);
+      // }
       res.status(404).json({ message: "File upload error" });
     }
   }
