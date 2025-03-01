@@ -19,10 +19,10 @@ const s3 = new S3Client({
 
 const uploadToAwsS3 = async (file: any) => {
   const bucketName = process.env.S3_BUCKET_NAME;
-
   if (!bucketName) {
     throw new Error("S3_BUCKET_NAME IS NOT SET");
   }
+
   const params = {
     Bucket: bucketName,
     Key: `${Date.now()}_${file.originalname}`,
