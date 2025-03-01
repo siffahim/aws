@@ -74,6 +74,6 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 //listening
-app.listen(process.env.PORT, () => {
+app.listen(Number(process.env.PORT), "10.0.70.80", () => {
   console.log(`Application running port: ${process.env.PORT}`);
 });
